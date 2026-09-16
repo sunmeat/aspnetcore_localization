@@ -1,0 +1,75 @@
+{
+  "common": {
+    "save": "Save",
+    "create": "Create",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "actions": "Actions",
+    "loading": "Loading...",
+    "noData": "No data available",
+    "records": "records"
+  },
+  "header": {
+    "title": "Football League",
+    "subtitle": "Player & Team Manager"
+  },
+  "nav": {
+    "players": "Players",
+    "teams": "Teams"
+  },
+  "player": {
+    "title": "Players",
+    "titleGenitive": "players",
+    "entity": "player",
+    "entityAccusative": "Player",
+    "add": "Add player",
+    "edit": "Edit player",
+    "fields": {
+      "name": "Player name",
+      "nameShort": "Name",
+      "age": "Age",
+      "position": "Position",
+      "team": "Team",
+      "noTeam": "No team"
+    },
+    "placeholders": {
+      "name": "e.g., Tymerlan Huseynov",
+      "age": "25",
+      "position": "e.g., Forward"
+    }
+  },
+  "team": {
+    "title": "Teams",
+    "titleGenitive": "teams",
+    "entity": "team",
+    "entityAccusative": "Team",
+    "add": "Add team",
+    "edit": "Edit team",
+    "fields": {
+      "name": "Team name",
+      "nameShort": "Team",
+      "coach": "Coach"
+    },
+    "placeholders": {
+      "name": "e.g., FC Chornomorets Odesa",
+      "coach": "e.g., Valeriy Lobanovskyi"
+    }
+  },
+  "form": {
+    "addTitle": "Add {{entity}}",
+    "editTitle": "Edit {{entity}}"
+  },
+  "modal": {
+    "deleteTitle": "Delete record?",
+    "deleteConfirm": "{{entity}} \"{{name}}\" will be permanently deleted. This action cannot be undone."
+  },
+  "errors": {
+    "load": "Loading error",
+    "save": "Failed to save data",
+    "delete": "Error deleting record"
+  },
+  "footer": {
+    "demoText": "Localization example: Clean Architecture ASP.NET Core Web API + React"
+  }
+}

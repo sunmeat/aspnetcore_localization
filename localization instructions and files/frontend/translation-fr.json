@@ -1,0 +1,75 @@
+{
+  "common": {
+    "save": "Enregistrer",
+    "create": "Créer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "actions": "Actions",
+    "loading": "Chargement...",
+    "noData": "Aucune donnée disponible",
+    "records": "enregistrements"
+  },
+  "header": {
+    "title": "Ligue de Football",
+    "subtitle": "Gestionnaire de joueurs et d'équipes"
+  },
+  "nav": {
+    "players": "Joueurs",
+    "teams": "Équipes"
+  },
+  "player": {
+    "title": "Joueurs",
+    "titleGenitive": "joueurs",
+    "entity": "joueur",
+    "entityAccusative": "Joueur",
+    "add": "Ajouter un joueur",
+    "edit": "Modifier le joueur",
+    "fields": {
+      "name": "Nom du joueur",
+      "nameShort": "Nom",
+      "age": "Âge",
+      "position": "Poste",
+      "team": "Équipe",
+      "noTeam": "Sans équipe"
+    },
+    "placeholders": {
+      "name": "ex. Tymerlan Huseynov",
+      "age": "25",
+      "position": "ex. Attaquant"
+    }
+  },
+  "team": {
+    "title": "Équipes",
+    "titleGenitive": "équipes",
+    "entity": "équipe",
+    "entityAccusative": "Équipe",
+    "add": "Ajouter une équipe",
+    "edit": "Modifier l'équipe",
+    "fields": {
+      "name": "Nom de l'équipe",
+      "nameShort": "Équipe",
+      "coach": "Entraîneur"
+    },
+    "placeholders": {
+      "name": "ex. FC Chornomorets Odesa",
+      "coach": "ex. Valeriy Lobanovskyi"
+    }
+  },
+  "form": {
+    "addTitle": "Ajouter un(e) {{entity}}",
+    "editTitle": "Modifier le/la {{entity}}"
+  },
+  "modal": {
+    "deleteTitle": "Supprimer l'élément ?",
+    "deleteConfirm": "Le/La {{entity}} « {{name}} » sera supprimé(e) définitivement. Cette action est irréversible."
+  },
+  "errors": {
+    "load": "Erreur de chargement",
+    "save": "Échec de l'enregistrement des données",
+    "delete": "Erreur lors de la suppression"
+  },
+  "footer": {
+    "demoText": "Exemple de localisation : Clean Architecture ASP.NET Core Web API + React"
+  }
+}
