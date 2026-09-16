@@ -1,720 +1,1242 @@
-# Soccer — Clean Architecture
+from pathlib import Path
 
-Навчальний проєкт на **ASP.NET Core MVC**, який демонструє основні принципи **Clean Architecture** Роберта С. Мартіна.
+content = r"""# Локалізація веб-застосунку: Frontend → Web API → Database
 
-Мета проєкту — показати, як організувати код так, щоб:
+## Локалізація додатків ASP.NET Core Web API + React
 
-- бізнес-логіка була незалежною від фреймворків і конкретної бази даних;
-- зміни в одній частині системи мінімально впливали на інші;
-- код було легко тестувати, розширювати й підтримувати;
-- кожен шар мав чітку відповідальність;
-- залежності були спрямовані всередину, до ядра застосунку.
+Локалізація — це не просто переклад кнопок на іншу мову.
 
-> **Важливо:** це навчальна реалізація Clean Architecture для CRUD-застосунку. Вона демонструє основні архітектурні принципи, але не претендує на використання всіх можливих практик DDD, CQRS або Enterprise Architecture.
+У сучасному веб-застосунку локалізація може стосуватися:
+
+- інтерфейсу користувача;
+- повідомлень Web API;
+- помилок валідації;
+- дат, часу, чисел і валют;
+- назв та описів даних;
+- навіть контенту, який зберігається в базі даних.
+
+ASP.NET Core має вбудовану підтримку globalization та localization, зокрема `CultureInfo`, `IStringLocalizer`, `.resx`-ресурси та вибір культури для HTTP-запиту.
+
+Головний принцип:
+
+> Локалізувати потрібно не весь код, а ті дані, які є мовними або залежать від культури.
 
 ---
 
-## 🧠 Чому саме Clean Architecture?
+## 1. Чому локалізація важлива
 
-У класичній тришаровій архітектурі часто використовують таку схему:
+Якщо застосунок підтримує декілька мов, локалізацію краще закласти в архітектуру на початку розробки.
+
+Інакше виникає типова ситуація:
 
 ```text
-Presentation → BLL → DAL
+"Save"
+"Delete"
+"Invalid email"
+"Player not found"
 ```
 
-Такий підхід може працювати добре, але з часом бізнес-логіка іноді починає залежати від Entity Framework, SQL Server, HTTP, MVC або інших деталей реалізації.
-
-Наприклад, сервіс може напряму використовувати `DbContext`, а бізнес-правила можуть опинитися всередині контролерів чи SQL-запитів. У результаті зміна технології зберігання даних або веб-фреймворку стає складнішою.
-
-**Clean Architecture** пропонує інший підхід:
-
-> Усі залежності спрямовані **всередину** — до ядра системи. Зовнішні шари можуть залежати від внутрішніх, але внутрішні шари не повинні знати про зовнішні деталі.
-
-Це дає такі переваги:
-
-1. **Domain** можна тестувати без бази даних і веб-сервера.
-2. **Application** не залежить від Entity Framework Core, SQL Server або конкретної ORM.
-3. Можна замінити SQL Server на PostgreSQL, Dapper, інше сховище або in-memory реалізацію, не змінюючи основну логіку застосунку.
-4. Presentation можна замінити з MVC на Web API, Minimal API, Blazor або інший інтерфейс.
-5. Код має зрозумілі межі відповідальності.
-6. Залежності легко підміняти під час модульного тестування.
-
----
-
-## 🏗️ Структура рішення
+розкидані по:
 
 ```text
-Soccer.sln
-│
-├── Soccer.Domain                 ← Ядро системи
-│   ├── Entities/
-│   │   ├── Player.cs
-│   │   └── Team.cs
-│   └── Interfaces/
-│       ├── IRepository.cs
-│       └── IUnitOfWork.cs
-│
-├── Soccer.Common                 ← Спільні типи
-│   └── Exceptions/
-│       └── ValidationException.cs
-│
-├── Soccer.Application            ← Сценарії використання
-│   ├── DTO/
-│   ├── Interfaces/
-│   ├── Services/
-│   ├── Mapping/
-│   └── DependencyInjection/
-│
-├── Soccer.Infrastructure         ← Технічні деталі
-│   ├── Persistence/
-│   ├── Repositories/
-│   └── DependencyInjection/
-│
-└── Soccer.Presentation           ← ASP.NET Core MVC
-    ├── Controllers/
-    ├── Views/
-    ├── wwwroot/
-    ├── Program.cs
-    └── appsettings.json
+React
+Controller
+Service
+Entity
+SQL
+JavaScript
 ```
 
-### Напрямок залежностей
+Після цього додавання другої мови перетворюється на пошук рядків по всьому solution.
+
+Правильний підхід:
 
 ```text
-                    ┌─────────────────────┐
-                    │     Presentation    │
-                    │     ASP.NET MVC     │
-                    └──────────┬──────────┘
-                               │
-                 ┌─────────────┴─────────────┐
-                 │                           │
-                 ▼                           ▼
-       ┌──────────────────┐       ┌────────────────────┐
-       │   Application    │       │   Infrastructure   │
-       │  Use Cases, DTO  │       │ EF Core, Repos     │
-       └────────┬─────────┘       └──────────┬─────────┘
-                │                            │
-                │                            │
-                └─────────────┬──────────────┘
-                              ▼
-                    ┌─────────────────────┐
-                    │        Domain       │
-                    │ Entities, Contracts │
-                    └─────────────────────┘
+                    ┌──────────────────┐
+                    │      User        │
+                    └────────┬─────────┘
+                             │
+                       selected culture
+                             │
+          ┌──────────────────┴──────────────────┐
+          ▼                                     ▼
+┌─────────────────────┐               ┌─────────────────────┐
+│      Frontend       │               │      Web API        │
+│                     │               │                     │
+│ UI translations     │               │ errors/messages     │
+│ formatting          │               │ validation          │
+│ dates/numbers       │               │ culture-aware data  │
+└──────────┬──────────┘               └──────────┬──────────┘
+           │                                     │
+           │                                     ▼
+           │                            ┌──────────────────┐
+           │                            │    Database      │
+           │                            │                  │
+           │                            │ multilingual     │
+           │                            │ content          │
+           │                            └──────────────────┘
+           │
+           └──────────── API ────────────────►
 ```
 
-`Presentation` може знати про `Application` та `Infrastructure` у композиційному корені. `Application` і `Domain` не повинні залежати від `Presentation` або конкретної реалізації `Infrastructure`.
-
 ---
 
-## 📦 Детальний опис шарів
+# 2. Globalization vs Localization
 
-### 1. Soccer.Domain — ядро системи
+Ці поняття часто плутають.
 
-`Domain` — найвнутрішній шар застосунку. Він містить основні сутності та контракти, які не залежать від зовнішніх технологій.
+## Globalization
 
-#### Що тут знаходиться
-
-- Сутності `Player` і `Team`.
-- Контракти репозиторіїв.
-- Контракт `IUnitOfWork`.
-
-Сутності є звичайними C#-класами. Вони не повинні залежати від:
-
-- Entity Framework Core;
-- `DbContext`;
-- SQL Server;
-- ASP.NET Core;
-- MVC;
-- HTTP;
-- конкретних ORM або баз даних.
-
-#### Чому це важливо
-
-Якщо зміниться спосіб зберігання даних, сутності та основні правила предметної області не повинні змінюватися лише через цю технічну заміну.
-
-Контракти в `Domain` демонструють **Dependency Inversion Principle**: внутрішній код залежить від абстракцій, а зовнішні реалізації ці абстракції реалізують.
-
-> У цьому проєкті використовується спрощений generic Repository-підхід. Він зручний для демонстрації CRUD, але не є єдиним і завжди найкращим варіантом для production-застосунків.
-
----
-
-### 2. Soccer.Common — спільні типи
-
-`Common` містить типи, які використовуються кількома шарами, але не є сутностями предметної області.
-
-Зараз тут розташований `ValidationException`.
-
-Він може:
-
-- виникати під час виконання операцій у `Application`;
-- оброблятися в `Presentation`;
-- перетворюватися на відповідний HTTP-відповідь.
-
-#### Чому винесено в окремий проєкт
-
-Окремий `Common` дозволяє уникнути дублювання типів між шарами.
-
-Водночас наявність `Common` не є обов'язковою вимогою Clean Architecture. У невеликому проєкті спільний виняток можна розмістити інакше, залежно від його призначення.
-
-Наприклад:
-
-- винятки, пов'язані зі сценаріями застосунку, можна розмістити в `Application`;
-- доменні винятки, що описують порушення бізнес-правил, можуть знаходитися в `Domain`;
-- HTTP-специфічні винятки або middleware повинні залишатися в `Presentation`.
-
-Також варто розрізняти різні ситуації:
-
-```text
-ValidationException  → некоректні вхідні дані
-NotFoundException    → сутність не знайдена
-BusinessRuleException → порушене бізнес-правило
-```
-
-У поточному навчальному прикладі використовується спрощений варіант із `ValidationException`.
-
----
-
-### 3. Soccer.Application — сценарії використання
-
-`Application` координує виконання операцій, які потрібні користувачеві або іншій частині системи.
-
-Тут знаходиться прикладна логіка:
-
-- DTO;
-- сервіси;
-- інтерфейси сервісів;
-- mapping;
-- реєстрація залежностей Application.
-
-#### Основні компоненти
-
-##### DTO
-
-DTO використовуються для передавання даних між Presentation та Application.
+Globalization означає, що програма технічно готова працювати з різними культурами.
 
 Наприклад:
 
 ```text
-PlayerDTO
-TeamDTO
+10/03/2026
+03/10/2026
+10.03.2026
 ```
 
-DTO не повинні автоматично ототожнюватися з Domain Entities. Вони формують контракт прикладного рівня і можуть містити лише ті дані, які потрібні конкретному сценарію.
+можуть представляти одну й ту саму дату залежно від культури.
 
-##### Services
+Також культура впливає на:
 
-`PlayerService` і `TeamService` реалізують операції на кшталт:
+- формат дат;
+- формат часу;
+- десятковий роздільник;
+- формат чисел;
+- валюту;
+- сортування;
+- порівняння рядків;
+- регіональні правила.
 
-- отримання всіх гравців;
-- отримання гравця за ідентифікатором;
-- створення гравця;
-- оновлення гравця;
-- видалення гравця;
-- аналогічні операції для команд.
+## Localization
 
-Application працює через абстракції та не звертається безпосередньо до `DbContext`.
-
-##### Mapping
-
-У проєкті використовується AutoMapper, налаштований через профіль.
-
-Важливо, щоб mapping був послідовним. Для невеликого навчального проєкту також цілком допустимий ручний mapping, наприклад через приватні методи `ToDto()` і `ToEntity()`.
-
-Ручний mapping часто навіть краще демонструє студентам:
-
-- які поля переносяться;
-- де відбувається перетворення;
-- які дані дозволено змінювати;
-- чим DTO відрізняється від Entity.
-
-##### Dependency Injection
-
-Метод `AddApplication()` реєструє Application-сервіси та AutoMapper.
-
-Application не повинна знати, які конкретні класи Infrastructure будуть використані під час запуску.
-
----
-
-### 4. Soccer.Infrastructure — реалізація технічних деталей
-
-`Infrastructure` містить конкретні технології, необхідні для роботи застосунку.
-
-#### Що тут знаходиться
-
-- `SoccerContext` — контекст Entity Framework Core;
-- реалізації репозиторіїв;
-- `EFUnitOfWork`;
-- налаштування persistence;
-- метод `AddInfrastructure(connectionString)`.
-
-#### Чому Infrastructure залежить від Domain
-
-Infrastructure реалізує контракти, оголошені у внутрішніх шарах:
-
-```text
-IRepository<T>  ←  PlayerRepository
-IUnitOfWork     ←  EFUnitOfWork
-```
-
-Тому Application може працювати з абстракціями, не знаючи про EF Core.
-
-Якщо в майбутньому потрібно буде замінити EF Core на Dapper, PostgreSQL, MongoDB або інше сховище, основна логіка Application не повинна залежати від цієї заміни.
-
----
-
-### 5. Soccer.Presentation — зовнішній шар
-
-`Presentation` є ASP.NET Core MVC-застосунком.
-
-Тут знаходяться:
-
-- контролери;
-- Razor Views;
-- статичні файли;
-- конфігурація;
-- `Program.cs`;
-- обробка HTTP-запитів і HTTP-відповідей.
-
-Presentation відповідає за веб-рівень, але не повинна містити основну бізнес-логіку.
-
----
-
-## 🧩 Composition Root і Program.cs
-
-`Program.cs` є **композиційним коренем** застосунку.
-
-Це місце, де конкретні реалізації зв'язуються з абстракціями через Dependency Injection.
-
-```csharp
-builder.Services.AddInfrastructure(connection);
-builder.Services.AddApplication();
-builder.Services.AddControllersWithViews();
-```
-
-Саме тут Presentation може одночасно знати про Application та Infrastructure.
-
-Інші шари не повинні самостійно створювати залежності через `new`, якщо ці залежності мають надходити через DI.
-
-### Чому це правильний підхід
+Localization означає адаптацію застосунку до конкретної мови та культури.
 
 Наприклад:
 
 ```text
-Application потребує IUnitOfWork
-             ↓
-Infrastructure надає EFUnitOfWork
-             ↓
-Program.cs реєструє відповідність
+en-US → English
+uk-UA → Ukrainian
+fr-FR → French
 ```
 
-Application не знає, що фактично буде використано `EFUnitOfWork`.
-
----
-
-## 🔄 Потік виконання запиту
-
-Розглянемо відкриття сторінки `/Teams/Index`.
+ASP.NET Core розділяє:
 
 ```text
-1. Користувач відкриває /Teams/Index
-                    ↓
-2. TeamsController
-                    ↓
-3. IEntityService<TeamDTO>
-                    ↓
-4. TeamService
-                    ↓
-5. IUnitOfWork / IRepository
-                    ↓
-6. EFUnitOfWork / TeamRepository
-                    ↓
-7. SoccerContext
-                    ↓
-8. SQL Server
-                    ↓
-9. Entity повертається в Application
-                    ↓
-10. Entity перетворюється на DTO
-                    ↓
-11. DTO передається в Controller
-                    ↓
-12. Controller передає модель у View
-                    ↓
-13. Razor View формує HTML-відповідь
+CurrentCulture
 ```
 
-Основна ідея полягає в тому, що кожен шар виконує свою роль:
+і
 
-- `Presentation` працює з HTTP та UI;
-- `Application` координує сценарій;
-- `Domain` містить сутності й абстракції;
-- `Infrastructure` працює з базою даних.
+```text
+CurrentUICulture
+```
+
+`CurrentCulture` використовується для culture-dependent операцій:
+
+```text
+DateTime
+numbers
+currency
+sorting
+```
+
+`CurrentUICulture` використовується для пошуку локалізованих ресурсів.
 
 ---
 
-## ✨ Що реалізовано
+# 3. Де повинна бути локалізація
 
-- CRUD для гравців і команд.
-- Repository Pattern.
-- Unit of Work.
-- Entity Framework Core.
-- DTO для прикладного рівня.
-- AutoMapper із централізованим профілем.
-- Dependency Injection.
-- Окремі extension-методи для реєстрації Application та Infrastructure.
-- Розділення Domain, Application, Infrastructure і Presentation.
-- Обробка ситуації, коли сутність не знайдена.
-- Демонстрація Dependency Rule та Dependency Inversion Principle.
+Для типового застосунку з React + ASP.NET Core Web API + Database можна виділити три рівні.
+
+| Рівень | Що локалізуємо | Обов'язковість |
+|---|---|---|
+| Frontend | UI, кнопки, меню, повідомлення, форматування | Обов'язково для multilingual UI |
+| Web API | validation, errors, messages, culture-dependent output | Обов'язково для user-facing API |
+| Database | назви, описи, каталоги, контент | Тільки якщо сам контент багатомовний |
+
+Важлива різниця:
+
+> Не кожен шар повинен перекладати один і той самий текст.
 
 ---
 
-## ⚖️ Архітектурні рішення та можливі альтернативи
+# 4. Frontend
 
-Clean Architecture не означає, що існує лише один правильний спосіб організації кожного файлу. Важливо розуміти причини рішень, їхні переваги та компроміси.
+Frontend відповідає за те, що бачить користувач.
 
-### Repository Pattern: generic чи спеціалізований?
+Наприклад:
 
-У поточному проєкті використовується:
-
-```csharp
-IRepository<T>
+```text
+Players
+Teams
+Add player
+Delete
+Save
+Cancel
 ```
 
-Це зручно для невеликого CRUD-прикладу, оскільки дозволяє повторно використовувати базові операції.
+це UI, тому локалізація **повинна** бути на frontend.
 
-Однак generic repository має обмеження. Наприклад, метод:
+## Що локалізувати
 
-```csharp
-Task<T?> Get(string name);
+### Обов'язково
+
+- меню;
+- кнопки;
+- заголовки;
+- лейбли елементів форм;
+- підказки в текстових полях;
+- повідомлення;
+- модальні вікна;
+- текст помилок валідації;
+- текст всіх інших помилок на боці клієнта;
+- accessibility-тексти.
+
+### Також важливо
+
+Форматування:
+
+```text
+date
+time
+number
+currency
 ```
 
-припускає, що будь-яка сутність має властивість `Name`. Це вже робить інтерфейс не повністю універсальним.
+Наприклад:
 
-Для більш складного застосунку можна використати спеціалізовані контракти:
+```text
+1 234,50 €
+```
 
-```csharp
-public interface IPlayerRepository
+і
+
+```text
+€1,234.50
+```
+
+це різні culture-dependent представлення одного значення.
+
+## Чим локалізувати React
+
+Найпоширеніший підхід:
+
+```text
+i18next - базовий двіжок JS
+react-i18next - спец-обгортка для середовища React / React Native (враховується нтеграція з життєвим циклом компонентів, перемальовка тощо)
+```
+
+Приклад структури:
+
+```text
+src/
+└── locales/
+    ├── en/
+    │   └── translation.json
+    ├── uk/
+    │   └── translation.json
+    └── fr/
+        └── translation.json
+```
+
+Наприклад:
+
+```json
 {
-    Task<Player?> GetByIdAsync(int id);
-    Task<IReadOnlyList<Player>> GetAllAsync();
-    Task<IReadOnlyList<Player>> GetByTeamIdAsync(int teamId);
+  "player": {
+    "title": "Players",
+    "add": "Add player",
+    "delete": "Delete"
+  }
 }
 ```
 
-Переваги спеціалізованих репозиторіїв:
+Frontend використовує ключ:
 
-- методи виражають конкретні потреби предметної області;
-- немає зайвих CRUD-методів;
-- легше оптимізувати запити;
-- інтерфейси стають зрозумілішими.
-
-Отже:
-
-```text
-Generic Repository       → простіше для навчального CRUD
-Specialized Repository   → часто виразніше для складного production-коду
+```javascript
+t("player.add")
 ```
 
-Жоден із варіантів не є універсально правильним для всіх систем.
+а не:
+
+```javascript
+"Add player"
+```
+
+Це важливо, тому що код не залежить від конкретної мови.
 
 ---
 
-### Unit of Work чи без нього?
+# 5. Backend Web API
 
-У проєкті використовується власний:
+Backend не повинен містити UI всього застосунку.
 
-```csharp
-IUnitOfWork
-EFUnitOfWork
+Наприклад, Web API не повинен повертати щось типу:
+
+```json
+{
+  "message": "Click the green button to continue"
+}
 ```
 
-Це корисно для демонстрації координації кількох репозиторіїв і спільного збереження змін.
+Це вже **відповідальність** frontend.
 
-Однак Entity Framework Core вже має власний Unit of Work у вигляді `DbContext`. Тому додаткова обгортка не завжди потрібна.
+Але API повинен локалізувати повідомлення, які є частиною його контракту або помилок.
 
-Можливі варіанти:
+Наприклад:
 
-```text
-Application → IUnitOfWork → EFUnitOfWork → DbContext
+```json
+{
+  "message": "Player was not found"
+}
 ```
 
 або:
 
-```text
-Application → спеціалізовані абстракції → DbContext через Infrastructure
-```
-
-Вибір залежить від складності застосунку. Якщо власний Unit of Work не додає додаткової цінності, він може бути зайвою абстракцією.
-
-Для навчального проєкту він залишається корисним, оскільки дозволяє продемонструвати патерн і принцип інверсії залежностей.
-
----
-
-### Update через detached entity чи завантаження існуючої?
-
-Спрощений підхід може виглядати так:
-
-```csharp
-var player = new Player
+```json
 {
-    Id = dto.Id,
-    Name = dto.Name,
-    Age = dto.Age,
-    Position = dto.Position,
-    TeamId = dto.TeamId
-};
-
-db.Entry(player).State = EntityState.Modified;
-```
-
-Для простого CRUD це може працювати, але в production-коді такий підхід має ризики:
-
-- усі поля позначаються як змінені;
-- можна випадково перезаписати дані;
-- користувач може змінити поле, яке не повинен змінювати;
-- складніше реалізувати часткове оновлення;
-- не вирішується concurrency-контроль.
-
-Безпечніший підхід:
-
-```text
-1. Отримати існуючу сутність.
-2. Перевірити, що вона існує.
-3. Перевірити права та бізнес-правила.
-4. Змінити дозволені поля.
-5. Зберегти зміни.
-```
-
-Приклад:
-
-```csharp
-var player = await unitOfWork.Players.GetByIdAsync(dto.Id);
-
-if (player is null)
-    throw new NotFoundException("Гравця не знайдено.");
-
-player.Name = dto.Name;
-player.Age = dto.Age;
-player.Position = dto.Position;
-player.TeamId = dto.TeamId;
-
-await unitOfWork.SaveChangesAsync();
-```
-
-Для складніших систем також можуть знадобитися:
-
-- optimistic concurrency;
-- `RowVersion`;
-- перевірка прав доступу;
-- окремі команди для оновлення;
-- часткове оновлення через PATCH.
-
----
-
-### AutoMapper чи ручний mapping?
-
-У поточному проєкті використовується AutoMapper.
-
-Це зручно, коли:
-
-- DTO багато;
-- моделі мають схожу структуру;
-- mapping повторюється;
-- правила перетворення централізовані.
-
-Але для невеликого CRUD-проєкту ручний mapping часто є простішим:
-
-```csharp
-private static PlayerDTO ToDto(Player player)
-{
-    return new PlayerDTO
-    {
-        Id = player.Id,
-        Name = player.Name,
-        Age = player.Age,
-        Position = player.Position,
-        TeamId = player.TeamId,
-        Team = player.Team?.Name
-    };
+  "message": "The name field is required"
 }
 ```
 
-Переваги ручного mapping:
+## Що локалізувати на backend
 
-- очевидно, які поля переносяться;
-- немає прихованої конфігурації;
-- простіше відлагоджувати;
-- не потрібна додаткова бібліотека.
+### Обов'язково
 
-Для навчання ручний mapping може бути навіть кращим. AutoMapper доречний, якщо він справді зменшує дублювання і не приховує важливу логіку.
+- validation messages;
+- business errors, які показуються користувачу;
+- error responses;
+-  notification messages;
+- повідомлення authentication/authorization, якщо вони повертаються користувачу.
+- API response messages (якщо це текст, що може зрозуміти людина);
+- server-generated documents.
+
+### Не потрібно локалізувати
+
+Внутрішні технічні повідомлення (той же console.log на продакшені зазвичай не повинен бути присутнім, або його використання має бути суворо обмеженим та контрольованим):
+
+```text
+NullReferenceException
+SQL timeout
+repository implementation details
+debug logs
+stack traces
+```
+
+Логи повинні бути технічними та придатними для розробника - "What happens on the server, stays on the server." :)
 
 ---
 
-### Exceptions чи Result-підхід?
+# 6. ASP.NET Core Localization
 
-У поточному проєкті для окремих помилкових ситуацій використовується exception-підхід.
+Для всіх моделей розробки ASP.NET Core стандартним інструментом є:
+
+```text
+Microsoft.Extensions.Localization
+```
+
+Основні компоненти:
+
+```text
+IStringLocalizer<T>
+IStringLocalizerFactory
+.resx
+CultureInfo
+RequestLocalizationMiddleware
+```
+
+Типова конфігурація:
+
+```csharp
+builder.Services.AddLocalization(options =>
+{
+    options.ResourcesPath = "Resources";
+});
+```
+
+Далі визначаються підтримувані культури:
+
+```text
+en-US
+uk-UA
+fr-FR
+```
+
+і механізм визначення культури HTTP-запиту.
 
 Наприклад:
 
 ```text
-Application → ValidationException
-Presentation → HTTP 404
+URL
+Cookie
+Accept-Language
 ```
 
-Це допустимо, але винятки не завжди є найкращим способом передавання очікуваних результатів.
+ASP.NET Core підтримує `SupportedCultures` та `SupportedUICultures`.
 
-Альтернативою може бути Result-підхід:
+---
+
+# 7. Resource files
+
+Для backend локалізації зручно використовувати файли `.resx` (або .json)
+
+Наприклад:
+
+```text
+Resources/
+├── SharedResource.uk-UA.resx
+├── SharedResource.en-US.resx
+└── SharedResource.fr-FR.resx
+```
+
+У коді:
 
 ```csharp
-public record Result<T>(
-    bool IsSuccess,
-    T? Value,
-    string? Error);
+localizer["PlayerNotFound"]
 ```
 
-Тоді Application повертає результат:
+Результат залежить від `CurrentUICulture`.
+
+Наприклад:
 
 ```text
-Success → DTO
-Failure → NotFound / Validation / BusinessRule
+uk-UA → Гравця не знайдено
+en-US → Player was not found
+fr-FR → Joueur introuvable
 ```
 
-Переваги Result-підходу:
+Перевага такого підходу:
 
-- очікувані помилки є частиною контракту;
-- менше винятків для звичайного потоку виконання;
-- зручніше будувати складні сценарії;
-- легше повертати кілька типів помилок.
+```text
+код
+  ↓
+resource key
+  ↓
+localized resource
+```
 
-Водночас для невеликого MVC-проєкту exceptions можуть бути простішими для пояснення.
+а не:
+
+```text
+if language == "uk"
+    ...
+else if language == "fr"
+    ...
+```
 
 ---
 
-### Де повинні знаходитися інтерфейси?
+# 8. Validation
 
-У поточному проєкті інтерфейси репозиторіїв і Unit of Work розміщені в `Domain`.
+Окремо потрібно локалізувати validation.
 
-Це допустимий варіант Clean Architecture: внутрішній шар визначає контракти, а Infrastructure їх реалізує.
+Наприклад:
 
-Але існує й інший поширений підхід:
-
-```text
-Soccer.Application
-└── Interfaces
-    ├── IPlayerRepository.cs
-    ├── ITeamRepository.cs
-    └── IUnitOfWork.cs
+```csharp
+[Required]
+public string Name { get; set; }
 ```
 
-У цьому варіанті Application визначає саме ті контракти, які потрібні його сценаріям.
-
-Порівняння:
+Повідомлення:
 
 ```text
-Контракти в Domain
-→ підходить, коли вони є частиною моделі та абстракції предметної області.
-
-Контракти в Application
-→ підходить, коли вони описують потреби конкретних use cases.
+The Name field is required.
 ```
 
-Важливо не механічно переміщувати інтерфейси, а розуміти, хто є власником контракту.
+може бути різним для різних культур.
+
+ASP.NET Core підтримує локалізацію DataAnnotations через:
+
+```csharp
+AddDataAnnotationsLocalization()
+```
+
+Це особливо важливо, коли validation виконується на backend.
+
+Правило:
+
+> Backend validation є джерелом істини для бізнес-правил. Frontend може дублювати просту validation для UX, але не повинен бути єдиним місцем перевірки.
 
 ---
 
-### Чи обов'язково мати Common?
+# 9. Database
 
-Ні. `Common` не є обов'язковим шаром Clean Architecture.
+Ось тут починається найцікавіша частина.
 
-Він може бути корисним, якщо там знаходяться справді спільні, незалежні від конкретного шару типи.
+Не кожне текстове поле в базі даних потрібно перекладати.
 
-Але надто великий `Common` часто перетворюється на «ящик для всього»:
+Наприклад:
 
 ```text
-Helpers
-Utils
-Extensions
-Constants
-Exceptions
-DTO
-Services
+Player.Email
+Player.Phone
+Player.DateOfBirth
+```
+
+не є multilingual content.
+
+А ось:
+
+```text
+Player.Name
+Team.Name
+Team.Description
+Movie.Title
+Movie.Description
+Category.Name
+```
+
+можуть бути локалізованим контентом.
+
+---
+
+# 10. Коли локалізація в БД НЕ потрібна
+
+Якщо значення однакове для всіх мов:
+
+```text
+Email
+Phone
+DateOfBirth
+Price
+StatusCode
+ExternalId
+```
+
+зберігаємо одне значення.
+
+Наприклад:
+
+```text
+price = 1500.50
+```
+
+а форматування виконуємо на frontend/backend залежно від culture.
+
+Не потрібно створювати:
+
+```text
+price_uk
+price_en
+price_fr
+```
+
+---
+
+# 11. Коли локалізація в БД дуже потрібна
+
+Якщо самі дані є мовним контентом:
+
+```text
+description
+title
+name
+content
+```
+
+і різні мови повинні мати різний текст.
+
+Наприклад:
+
+```text
+Movie
+├── Id
+├── ReleaseDate
+└── Translations
+      ├── uk-UA
+      ├── en-US
+      └── fr-FR
+```
+
+---
+
+# 12. Найкращий підхід для multilingual database
+
+Замість:
+
+```text
+Movie
+├── Id
+├── TitleUk
+├── TitleEn
+├── TitleFr
+├── DescriptionUk
+├── DescriptionEn
+└── DescriptionFr
+```
+
+краще використовувати таблицю перекладів.
+
+Наприклад:
+
+```text
+Movie
+----
+Id
+ReleaseDate
+
+
+MovieTranslation
+----------------
+Id
+MovieId
+Culture
+Title
+Description
+```
+
+Дані:
+
+```text
+Movie
+1 | 2026-09-01
+```
+
+```text
+MovieTranslation
+
+1 | 1 | uk-UA | Інтерстеллар | ...
+2 | 1 | en-US | Interstellar | ...
+3 | 1 | fr-FR | Interstellar | ...
+```
+
+Переваги:
+
+- можна додати нову мову без зміни схеми `Movie`;
+- кількість мов не зашивається в структуру таблиці;
+- контент зберігається централізовано;
+- легко вибирати потрібну локалізацію.
+
+---
+
+# 13. Де НЕ треба локалізувати Domain
+
+У Clean Architecture це особливо важливо.
+
+`Domain` не повинен знати про:
+
+```text
+ASP.NET Core
+HTTP
+React
+IStringLocalizer
+.resx / .json
+SQL Server
+```
+
+Не варто робити:
+
+```csharp
+public class Player
+{
+    public string UkrainianName { get; set; }
+    public string EnglishName { get; set; }
+}
+```
+
+лише через те, що frontend має дві мови. Бо там де дві, там потім буде і двадцять дві.
+
+**Domain повинен описувати предметну область, а не конкретний UI.**
+
+Якщо multilingual content є бізнесовою частиною домену, тоді модель домену може містити концепцію `Translation`, але сама механіка перекладу не повинна бути прив'язана до ASP.NET Core.
+
+---
+
+# 14. Application layer
+
+Application повинен працювати з даними, необхідними use case.
+
+Наприклад:
+
+```text
+GetPlayer
+CreatePlayer
+UpdatePlayer
+```
+
+Application може:
+
+- передати culture до потрібного сервісу;
+- запросити localized data;
+- сформувати DTO;
+- повернути локалізовану бізнес-помилку.
+
+Але Application не повинен перетворюватися на купу іфів
+
+```text
+if (culture == "uk")
+else if (culture == "en")
+else if (culture == "fr")
+else if ще 10+ варіантів мов
+```
+
+для кожного UI-тексту.
+
+Для повідомлень краще використовувати abstraction:
+
+```text
+IStringLocalizer
+```
+
+або власний application-level abstraction, якщо архітектура цього вимагає.
+
+---
+
+# 15. Хто за що відповідає
+
+Зручно запам'ятати так:
+
+```text
+┌──────────────────────────────────────────────┐
+│ FRONTEND                                     │
+│                                              │
+│ "Save"                                       │
+│ "Delete"                                     │
+│ "Players"                                    │
+│ UI validation                                │
+│ Date/number formatting                       │
+└──────────────────────┬───────────────────────┘
+                       │
+                       │ API
+                       ▼
+┌──────────────────────────────────────────────┐
+│ WEB API                                      │
+│                                              │
+│ Validation messages                           │
+│ Business errors                              │
+│ HTTP error messages                          │
+│ Culture-aware formatting                     │
+└──────────────────────┬───────────────────────┘
+                       │
+                       │ data
+                       ▼
+┌──────────────────────────────────────────────┐
+│ DATABASE                                     │
+│                                              │
+│ Multilingual content                         │
+│ Titles                                       │
+│ Descriptions                                 │
+│ Names                                        │
+└──────────────────────────────────────────────┘
+```
+
+---
+
+# 16. Що повинно залишатися універсальним
+
+Є дані, які не треба перекладати взагалі.
+
+Наприклад:
+
+```text
+Id
+GUID
+Email
+URL
+API endpoint
+status code
+database key
+enum value
+ISO code
+```
+
+Не можна перетворювати:
+
+```text
+Status = "Active"
+```
+
+на:
+
+```text
+Status = "Активний"
+```
+
+якщо `"Active"` є системним значенням.
+
+Краще:
+
+```text
+Status = Active
+```
+
+а frontend локалізує:
+
+```text
+uk-UA → Активний
+en-US → Active
+fr-FR → Actif
+```
+
+---
+
+# 17. API contract не повинен залежати від мови
+
+Погано:
+
+```json
+{
+  "status": "Активний"
+}
+```
+
+Краще:
+
+```json
+{
+  "status": "Active"
+}
+```
+
+Або ще краще, якщо це частина строго визначеного контракту:
+
+```json
+{
+  "status": "active"
+}
+```
+
+Frontend вже визначає:
+
+```text
+active
+  ↓
+uk-UA → Активний
+en-US → Active
+fr-FR → Actif
+```
+
+Це робить API стабільним незалежно від мови користувача.
+
+---
+
+# 18. Як передавати culture
+
+Один із практичних варіантів:
+
+```http
+Accept-Language: uk-UA
+```
+
+Наприклад:
+
+```http
+GET /api/players
+Accept-Language: uk-UA
+```
+
+або:
+
+```http
+Accept-Language: fr-FR
+```
+
+Backend визначає культуру запиту.
+
+Для web-застосунків також можуть використовуватися:
+
+```text
+URL:
+    api/v1/**uk**/players
+
+Cookie:
+    culture=uk-UA
+
+Accept-Language:
+    uk-UA
+```
+
+Вибір механізму залежить від архітектури.
+
+Для API природним є саме `Accept-Language`.
+
+---
+
+# 19. Де краще зберігати вибрану мову
+
+Для frontend зазвичай використовується гібридний підхід:
+
+```text
+URL - основне джерело правди та золотий стандарт для SEO та UX, посилання накшталт https://amazonclone.com/uk/about
+localStorage та Cookie - при першому візиті, якщо в URL мови немає
+browser language - якщо і в кукі порожньо, береться navigator.language
+user profile - збереження мови в базі даних на сервері, прив'язане до облікового запису користувача
+```
+
+Наприклад:
+
+```text
+browser language
+       ↓
+default culture
+       ↓
+user selects language
+       ↓
+save preference
+       ↓
+send culture to API
+```
+
+У production-застосунку варто визначити єдине правило пріоритетів.
+
+Наприклад:
+
+```text
+explicit user choice
+        ↓
+user profile
+        ↓
+URL
+        ↓
+Cookie
+        ↓
+Accept-Language
+        ↓
+default culture (останній захисний шар -fallback, коли жодне з попередніх джерел не повернуло підтримувану мову або коли запит віддає невідому мову)
+```
+
+---
+
+# 20. Найефективніші інструменти
+
+## Frontend
+
+Для React:
+
+```text
+i18next
+react-i18next
+```
+
+Для форматування:
+
+```text
+Intl
+Intl.DateTimeFormat
+Intl.NumberFormat
+```
+
+Це дозволяє не тільки перекладати текст, але й правильно форматувати culture-dependent дані.
+
+---
+
+## ASP.NET Core Web API
+
+Основні стандартні інструменти:
+
+```text
+Microsoft.Extensions.Localization
+IStringLocalizer<T>
+IStringLocalizerFactory
+.resx / .json
+RequestLocalizationMiddleware
+CultureInfo
+DataAnnotations localization
+```
+
+Для ASP.NET Core це базовий і добре інтегрований механізм.
+
+---
+
+## Database
+
+Універсального `i18next для SQL` немає.
+
+Найчастіше використовують:
+
+```text
+Translation table
+```
+
+наприклад:
+
+```text
+Entity
+EntityTranslation
+```
+
+або окремі translation entities.
+
+Для EF Core це природно моделюється через relationship:
+
+```text
+Movie 1 ─────── * MovieTranslation
+```
+
+Доречі, ідея автоматичного перекладу контенту з БД за допомогою нейромереж (LLM) у реальному часі виглядає привабливо, оскільки вона повністю знімає потребу розробляти класичну таблицю MovieTranslation чи вручну заповнювати дублікати для кожної мови.
+
+Проте, у production-системах реальний час (on-the-fly) для кожної HTML/API-сесії майже ніколи не використовують як основне рішення. Чому:
+- Генерація відповіді через LLM додає від 300ms до кількох секунд до кожного HTTP-запиту. Користувачі очікують відповіді БД за <50ms
+- Кожен перегляд сторінки тисячами користувачів миттєво спалюватиме API-токени (OpenAI, Claude тощо) за один і той самий текст
+- Нейромережа може перекласти одну й ту саму назву фільму чи категорії по-різному на двох сусідніх сторінках або навіть при кожному оновленні
+- Додаток стає залежним від зовнішнього API. Якщо сервіс LLM упаде або перевищить ліміти (rate limit), база даних "втратить" усі мови, крім дефолтної!
+
+---
+
+# 21. !!! Що НЕ варто робити !!!
+
+## 1. Hardcode тексту в коді
+
+Погано:
+
+```javascript
+<button>Delete</button>
+```
+
+Краще:
+
+```javascript
+<button>{t("common.delete")}</button>
+```
+
+---
+
+## 2. Перекладати на бекенді весь UI
+
+Погано:
+
+```json
+{
+  "message": "Натисніть зелену кнопку"
+}
+```
+
+API не повинен керувати UI!
+
+---
+
+## 3. Зберігати переклади в окремих колонках
+
+Погано:
+
+```text
+title_uk
+title_en
+title_fr
+title_de
 ...
 ```
 
-Це погіршує структуру.
-
-Краще розміщувати тип там, де він має найбільш природну відповідальність:
-
-- доменні правила → `Domain`;
-- сценарії та application-контракти → `Application`;
-- EF Core та зовнішні інтеграції → `Infrastructure`;
-- HTTP-специфічні речі → `Presentation`.
-
----
-
-## 🚀 Як запустити
-
-Клонуйте репозиторій:
-
-```bash
-git clone https://github.com/sunmeat/aspnetcore_clean.git
-cd aspnetcore_clean
-```
-
-Відновіть залежності:
-
-```bash
-dotnet restore
-```
-
-Запустіть Presentation-проєкт:
-
-```bash
-dotnet run --project Soccer.Presentation
-```
-
-Перед запуском перевірте файл:
+Краще:
 
 ```text
-Soccer.Presentation/appsettings.json
+Entity
+EntityTranslation
 ```
 
-Рядок підключення `DefaultConnection` має вказувати на доступний SQL Server.
+---
 
-Після запуску відкрийте в браузері адресу, яку буде виведено в консолі, наприклад:
+## 4. Зберігати переклад enum у БД
+
+Погано:
 
 ```text
-https://localhost:xxxx/Teams/Index
+status = "Активний"
+```
+
+Краще:
+
+```text
+status = "active"
+```
+
+і локалізувати при відображенні.
+
+---
+
+## 5. Локалізувати технічні логи
+
+Погано:
+
+```text
+[uk-UA] Не вдалося підключитися до бази даних
+[en-US] Unable to connect to database
+```
+
+Логи призначені для технічного аналізу, не для кінцевих користувачів сайту.
+Краще мати стабільні machine-readable повідомлення та структуровані поля.
+
+---
+
+# 22. Рекомендована архітектура для цього проєкту
+
+Як варіант, можна побудувати таку структуру:
+
+```text
+Soccer.sln
+│
+├── Soccer.Domain
+│   ├── Entities
+│   └── Interfaces
+│
+├── Soccer.Application
+│   ├── DTO
+│   ├── Services
+│   ├── Interfaces
+│   └── Mapping
+│
+├── Soccer.Infrastructure
+│   ├── Persistence
+│   ├── Repositories
+│   └── Localization !!!
+│
+├── Soccer.WebAPI
+│   ├── Controllers
+│   ├── Resources
+│   │   ├── SharedResource.uk-UA.resx !!!
+│   │   ├── SharedResource.en-US.resx !!!
+│   │   └── SharedResource.fr-FR.resx !!!
+│   └── Program.cs
+│
+└── react.client
+    └── src
+        ├── locales !!!
+        │   ├── uk  !!!
+        │   ├── en  !!!
+        │   └── fr  !!!
+        ├── components
+        └── services
 ```
 
 ---
 
-## 🛠️ Технологічний стек
+# 23. Підсумкова схема
 
-| Технологія | Призначення |
-|---|---|
-| ASP.NET Core MVC | Presentation layer |
-| Entity Framework Core | Робота з базою даних |
-| SQL Server | Сховище даних |
-| AutoMapper | Перетворення Entity ↔ DTO |
-| Dependency Injection | Керування залежностями |
-| Repository Pattern | Абстракція доступу до даних |
-| Unit of Work | Координація збереження змін |
-| .NET | Платформа виконання |
+```text
+                         USER
+                          │
+                    selected language
+                          │
+            ┌─────────────┴─────────────┐
+            │                           │
+            ▼                           ▼
+       React Client                 Web API
+            │                           │
+            │ i18next                   │ IStringLocalizer
+            │                           │ CultureInfo
+            │                           │
+            │                           ▼
+            │                    Application / Domain
+            │                           │
+            │                           ▼
+            │                    Infrastructure
+            │                           │
+            │                           ▼
+            │                      Database
+            │
+            └──────────── API ────────────────┘
+```
+
+Головне правило:
+
+```text
+UI text:
+    → локалізація на фронтенді
+
+API errors / validation:
+    → локалізація на бекенді
+
+Multilingual business content:
+    → локалізація на рівні таблиць / колекцій БД
+
+Dates / numbers / currency
+    → Culture-aware formatting (відображення дат, часу, чисел та валют
+      відповідно до регіональних стандартів і культурних норм конкретної країни чи мови
+      JS:
+      new Intl.NumberFormat('uk-UA').format(1234567.89);
+      new Intl.NumberFormat('uk-UA', { style: 'currency', currency: 'UAH' }).format(100);
+      C#:
+      decimal amount = 1234.56m;
+      string ukText = amount.ToString("C", new CultureInfo("uk-UA"));
+
+Technical identifiers / enum values:
+    → ніколи не перекладається
+```
 
 ---
 
-## 🎯 Для кого цей проєкт
+# 24. Практичне правило для розробника
 
-Проєкт призначений для:
+Перед тим як локалізувати будь-який текст, потрібно поставити питання:
 
-- тих, хто вивчає Clean Architecture;
-- студентів, які хочуть зрозуміти Dependency Rule;
-- розробників, які переходять від монолітного CRUD до шаруватої архітектури;
-- тих, хто хоче побачити практичне розділення Domain, Application, Infrastructure та Presentation;
-- тих, хто вивчає Repository Pattern, Unit of Work і Dependency Injection.
+> Хто є власником цього тексту?
 
-Проєкт навмисно залишається невеликим. Його мета — не продемонструвати максимальну кількість патернів, а показати зрозумілу архітектурну основу.
+### Якщо це UI:
 
-> Хороша архітектура — це не найбільша кількість проєктів, інтерфейсів і папок. Це зрозумілі межі, контроль залежностей і рішення, які відповідають складності системи.
+```text
+Frontend
+```
+
+### Якщо це повідомлення API:
+
+```text
+Backend
+```
+
+### Якщо це контент предметної області:
+
+```text
+Database
+```
+
+### Якщо це технічне значення:
+
+```text
+Не локалізувати
+```
+
+Саме так локалізація залишається частиною архітектури, а не перетворюється на хаотичний пошук `if language == ...` по всіх папках проєкту.
+
+---
+
+## Корисні ресурси
+
+- ASP.NET Core Localization:
+  https://learn.microsoft.com/en-us/aspnet/core/fundamentals/localization
+
+- .NET Localization:
+  https://learn.microsoft.com/en-us/dotnet/core/extensions/localization
+
+- .NET Resources:
+  https://learn.microsoft.com/en-us/dotnet/core/extensions/resources
+
+- Globalization and Localization:
+  https://learn.microsoft.com/en-us/dotnet/core/extensions/globalization-and-localization
+
+- React i18next:
+  https://react.i18next.com/
+
+- i18next:
+  https://www.i18next.com/
+
+---
+
+## Висновок
+
+Локалізація повинна бути **розподілена за відповідальністю**, а не реалізована одним глобальним механізмом.
+
+```text
+Frontend
+    ↓
+локалізує інтерфейс
+
+Web API
+    ↓
+локалізує validation та user-facing errors
+
+Database
+    ↓
+зберігає multilingual business content
+
+Culture
+    ↓
+визначає форматування дат, чисел та інших culture-dependent значень
+```
+
+При цьому внутрішні шари Clean Architecture не повинні ставати залежними від конкретного UI або конкретної мови!
+
+Це дозволяє додати `uk-UA`, `en-US`, `fr-FR` або іншу культуру без переписування бізнес-логіки.
+"""
