@@ -59,20 +59,19 @@ JavaScript
 ┌─────────────────────┐               ┌─────────────────────┐
 │      Frontend       │               │      Web API        │
 │                     │               │                     │
-│ UI translations     │               │ errors/messages     │
+│ UI translations     │ ─── API ────► │ errors/messages     │
 │ formatting          │               │ validation          │
-│ dates/numbers       │               │ culture-aware data  │
-└──────────┬──────────┘               └──────────┬──────────┘
-           │                                     │
-           │                                     ▼
-           │                            ┌──────────────────┐
-           │                            │    Database      │
-           │                            │                  │
-           │                            │ multilingual     │
-           │                            │ content          │
-           │                            └──────────────────┘
-           │
-           └──────────── API ────────────────►
+│ dates/numbers       │               │                     │
+└─────────────────────┘               └──────────┬──────────┘
+                                                 │
+                                                 ▼
+                                        ┌──────────────────┐
+                                        │    Database      │
+                                        │                  │
+                                        │ multilingual     │
+                                        │ content          │
+                                        └──────────────────┘
+           
 ```
 
 ---
