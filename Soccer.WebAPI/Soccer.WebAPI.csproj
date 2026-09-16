@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- налаштування SpaProxy для з'єднання з React/Vite.
+    SpaProxy — це пакет, забезпечує безшовну інтеграцію між бекендом (ASP.NET Core)
+    та фронтендом (Dev Server) під час локальної розробки. -->
+    <SpaRoot>..\react.client\</SpaRoot>
+    <SpaProxyServerUrl>https://localhost:3000</SpaProxyServerUrl>
+    <SpaProxyLaunchCommand>npm run dev</SpaProxyLaunchCommand>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.SpaProxy" Version="10.0.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Soccer.Application\Soccer.Application.csproj" />
+    <ProjectReference Include="..\Soccer.Infrastructure\Soccer.Infrastructure.csproj" />
+    <ProjectReference Include="..\Soccer.Common\Soccer.Common.csproj" />
+  </ItemGroup>
+
+</Project>
