@@ -701,7 +701,7 @@ IStringLocalizer
 ┌──────────────────────────────────────────────┐
 │ WEB API                                      │
 │                                              │
-│ Validation messages                           │
+│ Validation messages                          │
 │ Business errors                              │
 │ HTTP error messages                          │
 │ Culture-aware formatting                     │
