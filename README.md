@@ -1,7 +1,3 @@
-from pathlib import Path
-
-content = r"""# Локалізація веб-застосунку: Frontend → Web API → Database
-
 ## Локалізація додатків ASP.NET Core Web API + React
 
 Локалізація — це не просто переклад кнопок на іншу мову.
