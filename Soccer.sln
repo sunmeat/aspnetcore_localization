@@ -3,6 +3,8 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
 VisualStudioVersion = 18.10.12201.205 stable
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Soccer.WebAPI", "Soccer.WebAPI\Soccer.WebAPI.csproj", "{F39C9E22-80FD-42E0-94BF-8D56065416A7}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Soccer.Domain", "Soccer.Domain\Soccer.Domain.csproj", "{52B7D16F-FF9E-4EA0-BDE0-A2A020887B33}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Soccer.Common", "Soccer.Common\Soccer.Common.csproj", "{F23F56E3-3148-437A-93E7-53A46768E75F}"
@@ -10,8 +12,6 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Soccer.Application", "Soccer.Application\Soccer.Application.csproj", "{22B792AE-72CB-4829-8FCE-74D8C6CAFC7B}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Soccer.Infrastructure", "Soccer.Infrastructure\Soccer.Infrastructure.csproj", "{8D1C815C-6054-4B0E-B85C-A2657A1F5B7A}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Soccer.WebAPI", "Soccer.WebAPI\Soccer.WebAPI.csproj", "{F39C9E22-80FD-42E0-94BF-8D56065416A7}"
 EndProject
 Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "react.client", "React.Client\react.client.esproj", "{602AFEF4-DE05-C742-83CA-57623E88133D}"
 EndProject
