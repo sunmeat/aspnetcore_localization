@@ -5,9 +5,6 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
 
-    <!-- налаштування SpaProxy для з'єднання з React/Vite.
-    SpaProxy — це пакет, забезпечує безшовну інтеграцію між бекендом (ASP.NET Core)
-    та фронтендом (Dev Server) під час локальної розробки. -->
     <SpaRoot>..\react.client\</SpaRoot>
     <SpaProxyServerUrl>https://localhost:3000</SpaProxyServerUrl>
     <SpaProxyLaunchCommand>npm run dev</SpaProxyLaunchCommand>
@@ -22,5 +19,17 @@
     <ProjectReference Include="..\Soccer.Infrastructure\Soccer.Infrastructure.csproj" />
     <ProjectReference Include="..\Soccer.Common\Soccer.Common.csproj" />
   </ItemGroup>
+
+  <Target Name="EnsureNodeModulesInstalled"
+          BeforeTargets="Build"
+          Condition="'$(Configuration)' == 'Debug' And !Exists('$(SpaRoot)node_modules')">
+
+    <Message Importance="high"
+             Text="Restoring React dependencies using npm..." />
+
+    <Exec WorkingDirectory="$(SpaRoot)"
+          Command="npm install" />
+
+  </Target>
 
 </Project>
