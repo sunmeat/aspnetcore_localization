@@ -1,0 +1,5 @@
+<Project>
+  <PropertyGroup>
+    <StartupProject>Soccer.WebAPI\Soccer.WebAPI.csproj</StartupProject>
+  </PropertyGroup>
+</Project>
